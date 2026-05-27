@@ -49,7 +49,6 @@
 | **Ducky Inspect** | `DuckyPeek` | Lists tables, columns, types, and row counts for a database connection. |
 | **Ducky Query** | `DuckyQ` | Executes a SQL query and returns the result as a data tree (one branch per column). |
 | **Ducky Query Geometry** | `DuckyGeoQ` | Executes a SQL query that includes a GEOMETRY column and reconstructs Rhino geometry from WKB. |
-
 | **Ducky Query Builder** | `DuckyQB` | Builds a SQL SELECT query from simple inputs — no SQL knowledge required. |
 | **Ducky Filter** | `DuckyFlt` | Creates a filter condition for the Query Builder's Filters input. |
 | **Ducky Join Tables** | `DuckyJoin` | Combines rows from two tables based on a shared column (JOIN). |
