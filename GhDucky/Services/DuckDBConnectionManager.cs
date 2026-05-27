@@ -13,6 +13,9 @@ namespace GhDucky.Services
         private static readonly ConcurrentDictionary<string, DuckDBSession> Sessions =
             new(StringComparer.Ordinal);
 
+        private static readonly ConcurrentDictionary<string, int> RefCounts =
+            new(StringComparer.Ordinal);
+
         private static readonly object SourceLock = new();
         private static readonly Dictionary<string, string> SourceToId =
             new(StringComparer.OrdinalIgnoreCase);
@@ -53,6 +56,7 @@ namespace GhDucky.Services
                         Sessions.TryGetValue(existingId, out var existing) &&
                         existing.IsOpen)
                     {
+                        RefCounts.AddOrUpdate(existingId, 1, (_, count) => count + 1);
                         return existing;
                     }
 
@@ -64,6 +68,7 @@ namespace GhDucky.Services
                     var session = new DuckDBSession(id, canonicalSource, name, isInMemory);
                     Sessions[id] = session;
                     SourceToId[key] = id;
+                    RefCounts[id] = 1;
                     return session;
                 }
             }
@@ -74,6 +79,7 @@ namespace GhDucky.Services
             var anonId = Guid.NewGuid().ToString("N");
             var anonSession = new DuckDBSession(anonId, ":memory:", "memory", true);
             Sessions[anonId] = anonSession;
+            RefCounts[anonId] = 1;
             return anonSession;
         }
 
@@ -97,14 +103,25 @@ namespace GhDucky.Services
             if (string.IsNullOrEmpty(id))
                 return;
 
-            if (!Sessions.TryRemove(id, out var session))
-                return;
-
-            // Clear any cached extension state for this session.
-            DuckDbExtensionTracker.ClearAllForSession(id);
-
             lock (SourceLock)
             {
+                if (!RefCounts.TryGetValue(id, out var count))
+                    return;
+
+                if (count > 1)
+                {
+                    RefCounts[id] = count - 1;
+                    return;
+                }
+
+                // Final reference: clean up and dispose.
+                RefCounts.TryRemove(id, out _);
+                if (!Sessions.TryRemove(id, out var session))
+                    return;
+
+                // Clear any cached extension state for this session.
+                DuckDbExtensionTracker.ClearAllForSession(id);
+
                 string keyToRemove = null;
                 foreach (var kv in SourceToId)
                 {
@@ -116,9 +133,9 @@ namespace GhDucky.Services
                 }
                 if (keyToRemove != null)
                     SourceToId.Remove(keyToRemove);
-            }
 
-            session.Dispose();
+                session.Dispose();
+            }
         }
 
         public static IReadOnlyCollection<DuckDBSession> ActiveSessions()
@@ -135,17 +152,38 @@ namespace GhDucky.Services
         /// </summary>
         public static void CloseAll()
         {
-            // Snapshot the keys so we can iterate safely while Close mutates the dictionary.
-            var ids = new List<string>(Sessions.Keys);
-            foreach (var id in ids)
+            lock (SourceLock)
             {
-                try
+                // Snapshot the keys so we can iterate safely.
+                var ids = new List<string>(Sessions.Keys);
+                foreach (var id in ids)
                 {
-                    Close(id);
-                }
-                catch
-                {
-                    // Best-effort: continue closing remaining sessions.
+                    try
+                    {
+                        if (Sessions.TryRemove(id, out var session))
+                        {
+                            RefCounts.TryRemove(id, out _);
+                            DuckDbExtensionTracker.ClearAllForSession(id);
+
+                            string keyToRemove = null;
+                            foreach (var kv in SourceToId)
+                            {
+                                if (kv.Value == id)
+                                {
+                                    keyToRemove = kv.Key;
+                                    break;
+                                }
+                            }
+                            if (keyToRemove != null)
+                                SourceToId.Remove(keyToRemove);
+
+                            session.Dispose();
+                        }
+                    }
+                    catch
+                    {
+                        // Best-effort: continue closing remaining sessions.
+                    }
                 }
             }
         }
