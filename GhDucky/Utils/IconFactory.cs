@@ -25,6 +25,7 @@ namespace GhDucky.Utils
         public static readonly Color Query = ColorFromHex("#bb9af7");
         public static readonly Color Export = ColorFromHex("#f7768e");
         public static readonly Color Spatial = ColorFromHex("#7aa2f7");
+        public static readonly Color Excel = ColorFromHex("#73dacb");
         public static readonly Color Neutral = ColorFromHex("#e0af68");
 
         private static readonly ConcurrentDictionary<string, Bitmap> Cache = new();

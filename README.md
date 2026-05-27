@@ -1,6 +1,6 @@
 ﻿# 🦆 Ducky — DuckDB for Grasshopper
 
-**Ducky** brings the power of [DuckDB](https://duckdb.org/) to [Grasshopper](https://www.grasshopper3d.com/). Open in-memory or file-backed databases, load CSV/JSON/Parquet files and Grasshopper data trees, query everything in SQL, export results, and round-trip Rhino geometry through the DuckDB spatial extension.
+**Ducky** brings the power of [DuckDB](https://duckdb.org/) to [Grasshopper](https://www.grasshopper3d.com/). Open in-memory or file-backed databases, load CSV/JSON/Parquet/Excel files and Grasshopper data trees, query everything in SQL, export results, and round-trip Rhino geometry through the DuckDB spatial extension.
 
 [![Rhino 8](https://img.shields.io/badge/Rhino-8-blue)](https://www.rhino3d.com/)
 [![Grasshopper](https://img.shields.io/badge/Grasshopper-8.0-green)](https://www.grasshopper3d.com/)
@@ -12,10 +12,10 @@
 ## Features
 
 - **In-memory & file-backed databases** — spin up a throwaway analytics session or persist data to a `.duckdb` file.
-- **Import CSV, JSON, Parquet** — leverage DuckDB's blazing-fast native readers (`read_csv_auto`, `read_json_auto`, `read_parquet`).
+- **Import CSV, JSON, Parquet, Excel** — leverage DuckDB's blazing-fast native readers (`read_csv_auto`, `read_json_auto`, `read_parquet`) and the `spatial`/`excel` extensions for `.xlsx` files.
 - **Import Grasshopper data trees** — push branch data directly into tables via the high-performance Appender API with automatic type inference.
 - **SQL queries** — run any SQL against your data; results come back as Grasshopper data trees with typed columns.
-- **Export** — write query results or tables to CSV, JSON, or Parquet with a single component.
+- **Export** — write query results or tables to CSV, JSON, Parquet, or Excel with a single component.
 - **Spatial / Geometry round-trip** — import Rhino points, curves, meshes, and breps as WKB-encoded GEOMETRY columns via the DuckDB `spatial` extension, then query them back with `ST_*` functions.
 
 ---
@@ -29,6 +29,7 @@
 | **Ducky Connect** | `DuckyOn` | Opens or creates a database session. Leave the source empty for in-memory; supply a file path for a persistent database. |
 | **Ducky Disconnect** | `DuckyOff` | Closes a session and releases file locks. In-memory databases are discarded. |
 | **Ducky Enable Spatial** | `DuckySpatial` | Installs and loads the DuckDB `spatial` extension on the connection. |
+| **Ducky Enable Excel** | `DuckyExcel` | Installs and loads the DuckDB `spatial` and `excel` extensions for `.xlsx` support in manual SQL queries. Import/Export Excel components auto-enable these. |
 
 ### 2 · Import
 
@@ -38,6 +39,7 @@
 | **Ducky Import CSV** | `DuckyCSV` | Imports a CSV file into a table using `read_csv_auto`.                                        |
 | **Ducky Import JSON** | `DuckyJSON` | Imports a JSON file (array or newline-delimited) into a table using `read_json_auto`.         |
 | **Ducky Import Parquet** | `DuckyPQ` | Imports one or more Parquet files (supports globs) into a table.                              |
+| **Ducky Import Excel** | `DuckyXLSX` | Imports an Excel (.xlsx) file into a table via the `spatial`/`excel` extensions. Supports sheet selection and headers. |
 | **Ducky Import Geometry** | `DuckyGeo` | Imports Rhino geometry to a table as a WKB-encoded GEOMETRY column.                           |
 
 ### 3 · Query
@@ -48,11 +50,16 @@
 | **Ducky Query** | `DuckyQ` | Executes a SQL query and returns the result as a data tree (one branch per column). |
 | **Ducky Query Geometry** | `DuckyGeoQ` | Executes a SQL query that includes a GEOMETRY column and reconstructs Rhino geometry from WKB. |
 
+| **Ducky Query Builder** | `DuckyQB` | Builds a SQL SELECT query from simple inputs — no SQL knowledge required. |
+| **Ducky Filter** | `DuckyFlt` | Creates a filter condition for the Query Builder's Filters input. |
+| **Ducky Join Tables** | `DuckyJoin` | Combines rows from two tables based on a shared column (JOIN). |
+
 ### 4 · Export
 
 | Component | Nickname | Description |
 |---|---|---|
 | **Ducky Export** | `DuckyEx` | Exports a table or query result to CSV, JSON, or Parquet via DuckDB's `COPY TO`. |
+| **Ducky Export Excel** | `DuckyExXL` | Exports a table or query result to an Excel (.xlsx) file via the `spatial`/`excel` extensions. |
 
 ---
 
@@ -126,17 +133,19 @@ GhDucky can write Rhino geometry to DuckDB's `GEOMETRY` type via WKB encoding an
 GhDucky/
 ├── Components/
 │   ├── DuckyComponentBase.cs      # Shared base class
-│   ├── Connect/                   # Connect, Disconnect, Spatial
-│   ├── Import/                    # CSV, JSON, Parquet, DataTree, Geometry
-│   ├── Query/                     # Inspect, Query, QueryGeometry
-│   └── Export/                    # Export
+│   ├── Connect/                   # Connect, Disconnect, Spatial, Excel
+│   ├── Import/                    # CSV, JSON, Parquet, Excel, DataTree, Geometry
+│   ├── Query/                     # Inspect, Query, QueryGeometry, QueryBuilder, Filter, Join
+│   └── Export/                    # Export, ExportExcel
 ├── Services/
 │   ├── DuckDBConnectionManager.cs # Process-wide session registry
 │   ├── DuckDBSession.cs           # Thread-safe connection wrapper
 │   ├── NativeLibraryResolver.cs   # Resolves native DuckDB library for Grasshopper
-│   └── SpatialExtension.cs        # Spatial extension install/load tracker
+│   ├── SpatialExtension.cs        # Spatial extension facade
+│   ├── ExcelExtension.cs          # Excel extension facade (depends on spatial)
+│   └── DuckDbExtensionTracker.cs  # Generic extension install/load/clear tracker
 ├── Utils/
-│   ├── DuckyColumnType.cs         # SQL column type enum 
+│   ├── DuckyColumnType.cs         # SQL column type enum
 │   ├── ExceptionFormatter.cs      # User-friendly exception messages
 │   ├── GH_DuckDBConnection.cs     # Grasshopper Goo wrapper for sessions
 │   ├── IconFactory.cs             # Emoji-based component icon generator

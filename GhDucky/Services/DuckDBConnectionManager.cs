@@ -100,8 +100,8 @@ namespace GhDucky.Services
             if (!Sessions.TryRemove(id, out var session))
                 return;
 
-            // Clear any cached spatial-extension state for this session.
-            SpatialExtension.ClearSession(id);
+            // Clear any cached extension state for this session.
+            DuckDbExtensionTracker.ClearAllForSession(id);
 
             lock (SourceLock)
             {

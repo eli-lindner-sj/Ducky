@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Text;
 using DuckDB.NET.Data;
 using GhDucky.Services;
 using GhDucky.Utils;
@@ -181,6 +182,37 @@ namespace GhDucky.Components
             }
 
             return CountRows(conn, quotedTable);
+        }
+
+        /// <summary>
+        /// Wraps a source string for use in a COPY ... TO statement.
+        /// SELECT / WITH statements are wrapped in parentheses; plain table
+        /// names (optionally schema-qualified) are double-quoted.
+        /// </summary>
+        protected static string WrapSource(string source)
+        {
+            // Strip a trailing semicolon so the wrapped form remains valid:
+            //   COPY (SELECT ... ;) TO ...  -- DuckDB rejects this.
+            var trimmed = source.TrimEnd().TrimEnd(';').TrimEnd();
+            var leading = trimmed.TrimStart();
+
+            // SELECT / WITH must be wrapped in parentheses for COPY (...) TO.
+            if (leading.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||
+                leading.StartsWith("WITH", StringComparison.OrdinalIgnoreCase) ||
+                leading.StartsWith("("))
+            {
+                return leading.StartsWith("(") ? trimmed : "(" + trimmed + ")";
+            }
+
+            // Otherwise treat as a (possibly schema-qualified) identifier.
+            var parts = trimmed.Split('.');
+            var sb = new StringBuilder();
+            for (var i = 0; i < parts.Length; i++)
+            {
+                if (i > 0) sb.Append('.');
+                sb.Append(SqlIdentifier.Quote(parts[i].Trim()));
+            }
+            return sb.ToString();
         }
     }
 }

@@ -13,10 +13,10 @@
     <Title>Ducky — DuckDB for Grasshopper</Title>
     <Authors>Mitchell Tesch</Authors>
     <Company>Ducky</Company>
-    <Description>DuckDB integration for Grasshopper. Open in-memory or file-backed databases, load CSV/JSON/Parquet and Grasshopper data trees, query in SQL, export results, and round-trip Rhino geometry through the DuckDB spatial extension.</Description>
+    <Description>DuckDB integration for Grasshopper. Open in-memory or file-backed databases, load CSV/JSON/Parquet/Excel and Grasshopper data trees, query in SQL, export results, and round-trip Rhino geometry through the DuckDB spatial extension.</Description>
     <PackageProjectUrl>https://github.com/mitchell-tesch/Ducky</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/mitchell-tesch/Ducky/LICENSE</PackageLicenseUrl>
-    <PackageTags>duckdb;sql;database;data;rhino;grasshopper;parquet;csv;spatial;wkb;analytics</PackageTags>
+    <PackageTags>duckdb;sql;database;data;rhino;grasshopper;parquet;csv;excel;xlsx;spatial;wkb;analytics</PackageTags>
     <RepositoryUrl>https://github.com/mitchell-tesch/Ducky</RepositoryUrl>
     <Copyright>Copyright © Mitchell Tesch</Copyright>
   </PropertyGroup>

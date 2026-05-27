@@ -140,11 +140,26 @@ namespace GhDucky.Components.Query
         private static bool IsLikelyResultProducing(string sql)
         {
             var trimmed = sql.TrimStart();
-            while (trimmed.StartsWith("--", StringComparison.Ordinal))
+
+            // Strip leading comments (single-line and block).
+            while (true)
             {
-                var nl = trimmed.IndexOf('\n');
-                if (nl < 0) return false;
-                trimmed = trimmed.Substring(nl + 1).TrimStart();
+                if (trimmed.StartsWith("--", StringComparison.Ordinal))
+                {
+                    var nl = trimmed.IndexOf('\n');
+                    if (nl < 0) return false;
+                    trimmed = trimmed.Substring(nl + 1).TrimStart();
+                }
+                else if (trimmed.StartsWith("/*", StringComparison.Ordinal))
+                {
+                    var end = trimmed.IndexOf("*/", 2, StringComparison.Ordinal);
+                    if (end < 0) return false;
+                    trimmed = trimmed.Substring(end + 2).TrimStart();
+                }
+                else
+                {
+                    break;
+                }
             }
 
             return trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) ||

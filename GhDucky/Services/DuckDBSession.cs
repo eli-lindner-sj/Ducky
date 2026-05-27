@@ -31,7 +31,7 @@ namespace GhDucky.Services
         public string DisplayName { get; }
         public string Source { get; }
         public bool IsInMemory { get; }
-        public DuckDBConnection Connection { get; }
+        internal DuckDBConnection Connection { get; }
         public DateTime CreatedAt { get; }
 
         public bool IsDisposed => Volatile.Read(ref _disposed) != 0;

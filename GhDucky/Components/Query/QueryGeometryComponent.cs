@@ -26,7 +26,7 @@ namespace GhDucky.Components.Query
         
         public override Guid ComponentGuid => new Guid("8d9f4a82-4b1d-4fb1-93f2-2c7d2c5f0a1c");
 
-        public override GH_Exposure Exposure => GH_Exposure.tertiary;
+        public override GH_Exposure Exposure => GH_Exposure.secondary;
 
         protected override System.Drawing.Bitmap Icon => IconFactory.Build("❓", IconFactory.Spatial);
 

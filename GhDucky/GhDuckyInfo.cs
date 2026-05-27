@@ -13,7 +13,7 @@ namespace GhDucky
 
         public override string Description =>
             "DuckDB integration for Grasshopper. Open in-memory or file-backed databases, load " +
-            "CSV/JSON/Parquet and Grasshopper data trees, query in SQL, export results, and " +
+            "CSV/JSON/Parquet/Excel and Grasshopper data trees, query in SQL, export results, and " +
             "round-trip Rhino geometry through the DuckDB spatial extension.";
 
         public override Guid Id => new Guid("7a12c97b-08c8-482f-8e48-3dc5a1a896fd");
