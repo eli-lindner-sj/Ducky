@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+  <PropertyGroup>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <TargetExt>.gha</TargetExt>
+    <NoWarn>NU1701</NoWarn>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Ducky</AssemblyName>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+<!--    <InformationalVersion>0.1.0</InformationalVersion>-->
+<!--    <AssemblyVersion>0.1.0.0</AssemblyVersion>-->
+<!--    <FileVersion>0.1.0.0</FileVersion>-->
+    <Title>Ducky — DuckDB for Grasshopper</Title>
+    <Authors>Mitchell Tesch</Authors>
+    <Company>Ducky</Company>
+    <Description>DuckDB integration for Grasshopper. Open in-memory or file-backed databases, load CSV/JSON/Parquet and Grasshopper data trees, query in SQL, export results, and round-trip Rhino geometry through the DuckDB spatial extension.</Description>
+    <PackageProjectUrl>https://github.com/mitchell-tesch/Ducky</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/mitchell-tesch/Ducky/LICENSE</PackageLicenseUrl>
+    <PackageTags>duckdb;sql;database;data;rhino;grasshopper;parquet;csv;spatial;wkb;analytics</PackageTags>
+    <RepositoryUrl>https://github.com/mitchell-tesch/Ducky</RepositoryUrl>
+    <Copyright>Copyright © Mitchell Tesch</Copyright>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Grasshopper" Version="8.0.23304.9001" ExcludeAssets="runtime" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.27" />
+    <PackageReference Include="DuckDB.NET.Data.Full" Version="1.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GhDucky.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../yak/manifest.yml" CopyToOutputDirectory="PreserveNewest" Link="manifest.yml" />
+    <None Include="../yak/icon.png" CopyToOutputDirectory="PreserveNewest" Link="icon.png"/>
+  </ItemGroup>
+  
+  <Target Name="BuildYakPackage" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <YakExecutable Condition="$(YakExecutable) == '' and $([MSBuild]::IsOSPlatform(windows)) and Exists('C:\Program Files\Rhino 8\System\Yak.exe')">C:\Program Files\Rhino 8\System\Yak.exe</YakExecutable>
+      <YakExecutable Condition="$(YakExecutable) == '' and $([MSBuild]::IsOSPlatform(macos)) and Exists('/Applications/Rhino 8.app/Contents/Resources/bin/yak')">/Applications/Rhino 8.app/Contents/Resources/bin/yak</YakExecutable>
+      
+      <BuildYakPackage Condition="$(BuildYakPackage) == '' and $(YakExecutable) != '' and Exists($(YakExecutable))">True</BuildYakPackage>
+    </PropertyGroup>
+    
+    <Warning Text="Could not find Yak executable" Condition="$(YakExecutable) == ''" />
+
+    <ItemGroup>
+          <YakPackagesToDelete Include="$(OutputPath)\*.yak" />
+    </ItemGroup>
+    
+    <Delete Files="@(YakPackagesToDelete)" />
+    
+    <Exec Command="&quot;$(YakExecutable)&quot; build" WorkingDirectory="$(OutputPath)" Condition="$(BuildYakPackage) == 'True'" />
+
+  </Target>
+
+</Project>

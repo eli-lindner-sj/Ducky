@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="GhDucky/GhDucky.csproj" />
+  <Project Path="GhDucky.Tests/GhDucky.Tests.csproj" />
+</Solution>

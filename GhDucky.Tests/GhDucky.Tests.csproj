@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- The test runner doesn't need a .gha; produce a normal .dll. -->
+    <EnableDynamicLoading>false</EnableDynamicLoading>
+    <NoWarn>NU1701</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!--
+      RhinoCommon is added directly (and without ExcludeAssets="runtime") so the
+      WkbCodec tests can construct Point3d / Polyline. We deliberately avoid
+      tests that exercise classes that p/invoke into native Rhino (Mesh, Brep,
+      PolylineCurve, Point, etc.) so the tests run outside a Rhino host.
+    -->
+    <PackageReference Include="RhinoCommon" Version="8.0.23304.9001" />
+  </ItemGroup>
+
+  <!--
+    RhinoCommon's NuGet only ships net48 assets, so resolution-based copy to
+    a net8.0 bin folder is skipped. The types we use (Point3d, Line, Polyline)
+    are pure managed and load successfully on net8.0; we just need the DLL
+    on disk, so force-copy from the package cache.
+  -->
+  <ItemGroup>
+    <None Include="$(NuGetPackageRoot)rhinocommon\8.0.23304.9001\lib\net48\RhinoCommon.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="$(NuGetPackageRoot)rhinocommon\8.0.23304.9001\lib\net48\Rhino.UI.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="$(NuGetPackageRoot)rhinocommon\8.0.23304.9001\lib\net48\Eto.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="$(NuGetPackageRoot)rhinocommon\8.0.23304.9001\lib\net48\Ed.Eto.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Build the referenced project with EnableDynamicLoading=false and a .dll
+      output so the testhost can consume it normally. With the main project's
+      default (".gha" + dynamic loading) the generated deps.json lists the
+      assembly twice and the testhost fails to start CoreCLR (HRESULT 0x80070057).
+    -->
+    <ProjectReference Include="..\GhDucky\GhDucky.csproj"
+                      SetTargetFramework="TargetFramework=net8.0"
+                      SetConfiguration="Configuration=$(Configuration)"
+                      SetPlatform="Platform=$(Platform)"
+                      AdditionalProperties="EnableDynamicLoading=false;TargetExt=.dll" />
+  </ItemGroup>
+
+</Project>
+
