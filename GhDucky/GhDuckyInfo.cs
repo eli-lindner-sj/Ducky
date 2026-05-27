@@ -23,10 +23,11 @@ namespace GhDucky
         public override string AuthorContact => "https://github.com/mitchell-tesch/Ducky";
 
         public override string AssemblyVersion =>
-            GetType().Assembly
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion
-            ?? GetType().Assembly.GetName().Version?.ToString()
-            ?? "0.1.0";
+            (GetType().Assembly
+                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                 .InformationalVersion
+             ?? GetType().Assembly.GetName().Version?.ToString()
+             ?? "0.1.0")
+            .Split('+')[0];  // strip git hash suffix
     }
 }
