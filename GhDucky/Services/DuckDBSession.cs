@@ -23,7 +23,16 @@ namespace GhDucky.Services
             };
 
             Connection = new DuckDBConnection(builder.ConnectionString);
-            Connection.Open();
+            
+            // established practice for .NET UI: wrap unmanaged blocking calls in a task with timeout
+            // to prevent the host application (Rhino) from hanging if the file is locked or on a 
+            // dropped network share.
+            var openTask = System.Threading.Tasks.Task.Run(() => Connection.Open());
+            if (!openTask.Wait(TimeSpan.FromSeconds(15)))
+            {
+                throw new TimeoutException($"Connection to {DisplayName} timed out after 15 seconds. The file may be locked by another process or the network location is inaccessible.");
+            }
+
             CreatedAt = DateTime.UtcNow;
         }
 

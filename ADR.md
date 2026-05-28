@@ -29,3 +29,9 @@ When a component "opens" a session via the manager, the reference count is incre
 - **Cons**: 
   - Requires disciplined calling of `Close(id)` by all consumer components.
   - If a component fails to call `Close()` (e.g., due to an unhandled crash in a different part of the solve), a leak could still occur until the next `CloseAll()` (triggered by process shutdown).
+
+### Design Notes & Tradeoffs
+#### Intentional O(N) Lookup in `Close(id)`
+In `DuckDBConnectionManager.Close(id)`, removing a session from the `SourceToId` map (the deduplication cache) requires an O(N) search through the dictionary to find the source key associated with that session ID. 
+
+We intentionally chose this over adding a `SourceKey` property to the `DuckDBSession` object (which would allow O(1) removal). Adding the key to the session object would unnecessarily couple the core session representation to the manager's internal caching strategy. Given that a typical Grasshopper user will likely have fewer than 100 active database connections simultaneously, the O(N) lookup is functionally instantaneous and the architectural decoupling is a more valuable long-term benefit.

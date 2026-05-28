@@ -14,6 +14,7 @@ namespace GhDucky.Services
     internal static class NativeLibraryResolver
     {
         private const string DuckDbLibraryName = "duckdb";
+        private const string EnvVarNativePath = "GHDUCKY_NATIVE_PATH";
         private static int _initialized;
 
 #pragma warning disable CA2255 // ModuleInitializer is the intended bootstrap point for native-library resolution in a Grasshopper plug-in.
@@ -77,7 +78,7 @@ namespace GhDucky.Services
             var nativeFileName = GetNativeFileName();
 
             // 1. Check for Environment Variable override
-            var envPath = Environment.GetEnvironmentVariable("GHDUCKY_NATIVE_PATH");
+            var envPath = Environment.GetEnvironmentVariable(EnvVarNativePath);
             if (!string.IsNullOrEmpty(envPath))
             {
                 try
@@ -97,16 +98,16 @@ namespace GhDucky.Services
                         if (NativeLibrary.TryLoad(candidate, out var handle))
                             return handle;
                         
-                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: GHDUCKY_NATIVE_PATH was set to '{envPath}' but NativeLibrary.TryLoad failed for '{candidate}'.");
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: {EnvVarNativePath} was set to '{envPath}' but NativeLibrary.TryLoad failed for '{candidate}'.");
                     }
                     else
                     {
-                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: GHDUCKY_NATIVE_PATH was set to '{envPath}' but no valid file was found.");
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: {EnvVarNativePath} was set to '{envPath}' but no valid file was found.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Error processing GHDUCKY_NATIVE_PATH '{envPath}'. {ex.Message}");
+                    System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Error processing {EnvVarNativePath} '{envPath}'. {ex.Message}");
                 }
             }
 

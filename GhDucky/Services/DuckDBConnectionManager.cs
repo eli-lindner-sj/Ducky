@@ -115,12 +115,10 @@ namespace GhDucky.Services
                 }
 
                 // Final reference: clean up and dispose.
-                RefCounts.TryRemove(id, out _);
                 if (!Sessions.TryRemove(id, out var session))
                     return;
 
-                // Clear any cached extension state for this session.
-                DuckDbExtensionTracker.ClearAllForSession(id);
+                DisposeSessionInternal(id, session);
 
                 string keyToRemove = null;
                 foreach (var kv in SourceToId)
@@ -133,9 +131,14 @@ namespace GhDucky.Services
                 }
                 if (keyToRemove != null)
                     SourceToId.Remove(keyToRemove);
-
-                session.Dispose();
             }
+        }
+
+        private static void DisposeSessionInternal(string id, DuckDBSession session)
+        {
+            RefCounts.TryRemove(id, out _);
+            DuckDbExtensionTracker.ClearAllForSession(id);
+            session.Dispose();
         }
 
         public static IReadOnlyCollection<DuckDBSession> ActiveSessions()
@@ -162,9 +165,7 @@ namespace GhDucky.Services
                         if (!Sessions.TryRemove(id, out var session))
                             continue;
 
-                        RefCounts.TryRemove(id, out _);
-                        DuckDbExtensionTracker.ClearAllForSession(id);
-                        session.Dispose();
+                        DisposeSessionInternal(id, session);
                     }
                     catch (Exception ex)
                     {

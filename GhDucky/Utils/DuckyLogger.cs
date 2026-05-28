@@ -13,53 +13,131 @@ namespace GhDucky.Utils
     /// </summary>
     public sealed class DuckyLogger : TraceListener
     {
-        private readonly string _logFilePath;
+        private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+        private const int MaxRetentionDays = 7;
+
+        private readonly string _logDir;
+        private string _currentFilePath;
+        private StreamWriter _writer;
         private readonly object _lock = new();
 
-        public DuckyLogger()
+        public DuckyLogger() : this(Path.Combine(Folders.AppDataFolder, "Logs", "GhDucky"))
+        {
+        }
+
+        internal DuckyLogger(string logDir)
         {
             try
             {
-                // Use the Grasshopper-specific AppData folder, which is idiomatic for both platforms.
-                // Windows: %AppData%\Roaming\Grasshopper
-                // macOS: ~/Library/Application Support/McNeel/Rhinoceros/[Version]/Grasshopper
-                var logDir = Path.Combine(Folders.AppDataFolder, "Logs", "GhDucky");
+                _logDir = logDir;
 
-                if (!Directory.Exists(logDir))
-                    Directory.CreateDirectory(logDir);
+                if (!Directory.Exists(_logDir))
+                    Directory.CreateDirectory(_logDir);
 
-                _logFilePath = Path.Combine(logDir, $"gh-ducky-{DateTime.Now:yyyyMMdd}.log");
-                
-                // Write a separator for the new session
-                WriteLine($"--- Session Started: {DateTime.Now:O} ---");
+                CleanupOldLogs();
+                EnsureWriter();
             }
             catch
             {
                 // If we can't create the log directory, the logger will just ignore Write calls.
-                _logFilePath = null;
             }
+        }
+
+        private void CleanupOldLogs()
+        {
+            try
+            {
+                var now = DateTime.Now;
+                foreach (var file in Directory.GetFiles(_logDir, "gh-ducky-*.log"))
+                {
+                    var lastWrite = File.GetLastWriteTime(file);
+                    if ((now - lastWrite).TotalDays > MaxRetentionDays)
+                    {
+                        File.Delete(file);
+                    }
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup
+            }
+        }
+
+        private void EnsureWriter()
+        {
+            if (_logDir == null) return;
+
+            var baseFileName = $"gh-ducky-{DateTime.Now:yyyyMMdd}";
+            var path = Path.Combine(_logDir, $"{baseFileName}.log");
+
+            // Handle rotation if file exists and is too large
+            int suffix = 1;
+            while (File.Exists(path) && new FileInfo(path).Length > MaxFileSizeBytes)
+            {
+                path = Path.Combine(_logDir, $"{baseFileName}_{suffix:D2}.log");
+                suffix++;
+            }
+
+            if (_writer != null && _currentFilePath == path)
+                return;
+
+            _writer?.Dispose();
+            _currentFilePath = path;
+            _writer = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+            {
+                AutoFlush = true
+            };
+            
+            _writer.WriteLine($"--- Session Continued: {DateTime.Now:O} ---");
+        }
+
+        public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
+        {
+            var level = eventType switch
+            {
+                TraceEventType.Error => "ERROR",
+                TraceEventType.Warning => "WARN",
+                TraceEventType.Information => "INFO",
+                TraceEventType.Verbose => "DEBUG",
+                _ => eventType.ToString().ToUpperInvariant()
+            };
+
+            WriteLine($"[{level}] {message}");
         }
 
         public override void Write(string message)
         {
-            if (_logFilePath == null) return;
-
             lock (_lock)
             {
                 try
                 {
-                    File.AppendAllText(_logFilePath, message);
+                    EnsureWriter();
+                    _writer?.Write(message);
                 }
                 catch
                 {
-                    // Ignore logging failures to prevent crashing the host.
+                    // Ignore logging failures
                 }
             }
         }
 
         public override void WriteLine(string message)
         {
-            Write($"{DateTime.Now:HH:mm:ss.fff} [{Thread.CurrentThread.ManagedThreadId:D2}] {message}{Environment.NewLine}");
+            var formatted = $"{DateTime.Now:HH:mm:ss.fff} [{Thread.CurrentThread.ManagedThreadId:D2}] {message}{Environment.NewLine}";
+            Write(formatted);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                lock (_lock)
+                {
+                    _writer?.Dispose();
+                    _writer = null;
+                }
+            }
+            base.Dispose(disposing);
         }
 
         /// <summary>
