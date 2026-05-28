@@ -26,7 +26,15 @@ jobs:
       run: dotnet restore Ducky.slnx
       
     - name: Build
-      run: dotnet build Ducky.slnx --no-restore
+      run: dotnet build Ducky.slnx --no-restore --configuration Release
       
     - name: Test
-      run: dotnet test Ducky.slnx --no-build --verbosity normal
+      run: dotnet test Ducky.slnx --no-build --configuration Release --verbosity normal
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Ducky-${{ matrix.os }}
+        path: |
+          GhDucky/bin/Release/net8.0/
+          !GhDucky/bin/Release/net8.0/*.pdb
