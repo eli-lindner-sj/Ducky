@@ -1,4 +1,5 @@
 using System;
+using System.Data.Common;
 using System.Threading;
 using DuckDB.NET.Data;
 
@@ -16,13 +17,12 @@ namespace GhDucky.Services
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? id : displayName;
             IsInMemory = isInMemory;
 
-            // Wrap the source in quotes so that paths containing ';' or '='
-            // do not break ADO.NET connection-string parsing.
-            var connectionString = isInMemory
-                ? "DataSource=:memory:"
-                : $"DataSource=\"{source}\"";
+            var builder = new DbConnectionStringBuilder
+            {
+                ["DataSource"] = isInMemory ? ":memory:" : source
+            };
 
-            Connection = new DuckDBConnection(connectionString);
+            Connection = new DuckDBConnection(builder.ConnectionString);
             Connection.Open();
             CreatedAt = DateTime.UtcNow;
         }
