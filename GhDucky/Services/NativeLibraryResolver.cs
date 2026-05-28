@@ -14,6 +14,7 @@ namespace GhDucky.Services
     internal static class NativeLibraryResolver
     {
         private const string DuckDbLibraryName = "duckdb";
+        private const string EnvVarNativePath = "GHDUCKY_NATIVE_PATH";
         private static int _initialized;
 
 #pragma warning disable CA2255 // ModuleInitializer is the intended bootstrap point for native-library resolution in a Grasshopper plug-in.
@@ -42,8 +43,9 @@ namespace GhDucky.Services
                 // SetDllImportResolver throws InvalidOperationException if a resolver
                 // is already registered for that assembly. Treat that as success.
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.TraceError($"NativeLibraryResolver: Failed to initialize. {ex}");
                 // Other failures: reset so a later call can retry.
                 System.Threading.Volatile.Write(ref _initialized, 0);
             }
@@ -54,7 +56,11 @@ namespace GhDucky.Services
         {
             // Try direct load first (fast path).
             try { return Assembly.Load(new AssemblyName("DuckDB.NET.Bindings")); }
-            catch { /* fall through */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Direct load of DuckDB.NET.Bindings failed. {ex.Message}");
+                /* fall through */
+            }
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -69,11 +75,47 @@ namespace GhDucky.Services
             if (!string.Equals(libraryName, DuckDbLibraryName, StringComparison.OrdinalIgnoreCase))
                 return IntPtr.Zero;
 
+            var nativeFileName = GetNativeFileName();
+
+            // 1. Check for Environment Variable override
+            var envPath = Environment.GetEnvironmentVariable(EnvVarNativePath);
+            if (!string.IsNullOrEmpty(envPath))
+            {
+                try
+                {
+                    string candidate = null;
+                    if (File.Exists(envPath))
+                    {
+                        candidate = envPath;
+                    }
+                    else if (Directory.Exists(envPath))
+                    {
+                        candidate = Path.Combine(envPath, nativeFileName);
+                    }
+
+                    if (candidate != null && File.Exists(candidate))
+                    {
+                        if (NativeLibrary.TryLoad(candidate, out var handle))
+                            return handle;
+                        
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: {EnvVarNativePath} was set to '{envPath}' but NativeLibrary.TryLoad failed for '{candidate}'.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: {EnvVarNativePath} was set to '{envPath}' but no valid file was found.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Error processing {EnvVarNativePath} '{envPath}'. {ex.Message}");
+                }
+            }
+
+            // 2. Default relative-path search
             var pluginDir = Path.GetDirectoryName(typeof(NativeLibraryResolver).Assembly.Location);
             if (string.IsNullOrEmpty(pluginDir))
                 return IntPtr.Zero;
 
-            var nativeFileName = GetNativeFileName();
             foreach (var rid in GetRidCandidates())
             {
                 var candidate = Path.Combine(pluginDir, "runtimes", rid, "native", nativeFileName);
