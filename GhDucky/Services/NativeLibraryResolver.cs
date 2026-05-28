@@ -74,11 +74,47 @@ namespace GhDucky.Services
             if (!string.Equals(libraryName, DuckDbLibraryName, StringComparison.OrdinalIgnoreCase))
                 return IntPtr.Zero;
 
+            var nativeFileName = GetNativeFileName();
+
+            // 1. Check for Environment Variable override
+            var envPath = Environment.GetEnvironmentVariable("GHDUCKY_NATIVE_PATH");
+            if (!string.IsNullOrEmpty(envPath))
+            {
+                try
+                {
+                    string candidate = null;
+                    if (File.Exists(envPath))
+                    {
+                        candidate = envPath;
+                    }
+                    else if (Directory.Exists(envPath))
+                    {
+                        candidate = Path.Combine(envPath, nativeFileName);
+                    }
+
+                    if (candidate != null && File.Exists(candidate))
+                    {
+                        if (NativeLibrary.TryLoad(candidate, out var handle))
+                            return handle;
+                        
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: GHDUCKY_NATIVE_PATH was set to '{envPath}' but NativeLibrary.TryLoad failed for '{candidate}'.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: GHDUCKY_NATIVE_PATH was set to '{envPath}' but no valid file was found.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Error processing GHDUCKY_NATIVE_PATH '{envPath}'. {ex.Message}");
+                }
+            }
+
+            // 2. Default relative-path search
             var pluginDir = Path.GetDirectoryName(typeof(NativeLibraryResolver).Assembly.Location);
             if (string.IsNullOrEmpty(pluginDir))
                 return IntPtr.Zero;
 
-            var nativeFileName = GetNativeFileName();
             foreach (var rid in GetRidCandidates())
             {
                 var candidate = Path.Combine(pluginDir, "runtimes", rid, "native", nativeFileName);
