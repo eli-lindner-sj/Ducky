@@ -3,11 +3,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Grasshopper;
 
 namespace GhDucky.Utils
 {
     /// <summary>
-    /// A simple rolling file-based TraceListener that writes logs to the local AppData folder.
+    /// A simple rolling file-based TraceListener that writes logs to the Grasshopper AppData folder.
     /// Used to provide persistent observability for background service failures in production.
     /// </summary>
     public sealed class DuckyLogger : TraceListener
@@ -17,13 +18,13 @@ namespace GhDucky.Utils
 
         public DuckyLogger()
         {
-            var logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "GhDucky",
-                "Logs");
-
             try
             {
+                // Use the Grasshopper-specific AppData folder, which is idiomatic for both platforms.
+                // Windows: %AppData%\Roaming\Grasshopper
+                // macOS: ~/Library/Application Support/McNeel/Rhinoceros/[Version]/Grasshopper
+                var logDir = Path.Combine(Folders.AppDataFolder, "Logs", "GhDucky");
+
                 if (!Directory.Exists(logDir))
                     Directory.CreateDirectory(logDir);
 
