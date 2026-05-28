@@ -97,6 +97,8 @@ namespace GhDucky.Components
         /// </summary>
         protected void ReportError(string context, Exception ex)
         {
+            System.Diagnostics.Trace.TraceError($"{context}: {ex}");
+
             AddRuntimeMessage(GH_RuntimeMessageLevel.Error,
                 context + ": " + ExceptionFormatter.Format(ex));
         }

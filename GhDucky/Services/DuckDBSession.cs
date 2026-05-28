@@ -78,8 +78,9 @@ namespace GhDucky.Services
                 if (Connection.State != System.Data.ConnectionState.Closed)
                     Connection.Close();
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.TraceError($"DuckDBSession: Failed to close connection for {DisplayName}. {ex}");
                 // best-effort close
             }
 

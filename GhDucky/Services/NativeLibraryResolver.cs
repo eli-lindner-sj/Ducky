@@ -42,8 +42,9 @@ namespace GhDucky.Services
                 // SetDllImportResolver throws InvalidOperationException if a resolver
                 // is already registered for that assembly. Treat that as success.
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.TraceError($"NativeLibraryResolver: Failed to initialize. {ex}");
                 // Other failures: reset so a later call can retry.
                 System.Threading.Volatile.Write(ref _initialized, 0);
             }
@@ -54,7 +55,11 @@ namespace GhDucky.Services
         {
             // Try direct load first (fast path).
             try { return Assembly.Load(new AssemblyName("DuckDB.NET.Bindings")); }
-            catch { /* fall through */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning($"NativeLibraryResolver: Direct load of DuckDB.NET.Bindings failed. {ex.Message}");
+                /* fall through */
+            }
 
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {

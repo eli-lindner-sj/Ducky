@@ -152,38 +152,17 @@ namespace GhDucky.Services
         /// </summary>
         public static void CloseAll()
         {
-            lock (SourceLock)
+            // Snapshot the keys so we can iterate safely while Close mutates the dictionary.
+            var ids = new List<string>(Sessions.Keys);
+            foreach (var id in ids)
             {
-                // Snapshot the keys so we can iterate safely.
-                var ids = new List<string>(Sessions.Keys);
-                foreach (var id in ids)
+                try
                 {
-                    try
-                    {
-                        if (Sessions.TryRemove(id, out var session))
-                        {
-                            RefCounts.TryRemove(id, out _);
-                            DuckDbExtensionTracker.ClearAllForSession(id);
-
-                            string keyToRemove = null;
-                            foreach (var kv in SourceToId)
-                            {
-                                if (kv.Value == id)
-                                {
-                                    keyToRemove = kv.Key;
-                                    break;
-                                }
-                            }
-                            if (keyToRemove != null)
-                                SourceToId.Remove(keyToRemove);
-
-                            session.Dispose();
-                        }
-                    }
-                    catch
-                    {
-                        // Best-effort: continue closing remaining sessions.
-                    }
+                    Close(id);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceError($"DuckDBConnectionManager: Failed to close session {id} during teardown. {ex}");
                 }
             }
         }
