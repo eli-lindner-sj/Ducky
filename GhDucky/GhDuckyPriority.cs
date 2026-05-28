@@ -12,6 +12,8 @@ namespace GhDucky
 
         public override GH_LoadingInstruction PriorityLoad()
         {
+            Utils.DuckyLogger.Register();
+
             if (Interlocked.CompareExchange(ref _shutdownHooksWired, 1, 0) == 0)
             {
                 AppDomain.CurrentDomain.ProcessExit += OnDomainShutdown;
