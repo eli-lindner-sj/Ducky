@@ -26,12 +26,13 @@ jobs:
       run: dotnet restore Ducky.slnx
       
     - name: Build
-      run: dotnet build Ducky.slnx --no-restore --configuration Release
+      run: dotnet build Ducky.slnx --no-restore --configuration Release -m:1
       
     - name: Test
       run: dotnet test Ducky.slnx --no-build --configuration Release --verbosity normal
 
     - name: Upload Build Artifacts
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: Ducky-${{ matrix.os }}
