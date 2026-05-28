@@ -5,6 +5,7 @@
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <!-- The test runner doesn't need a .gha; produce a normal .dll. -->
     <EnableDynamicLoading>false</EnableDynamicLoading>
     <NoWarn>NU1701</NoWarn>

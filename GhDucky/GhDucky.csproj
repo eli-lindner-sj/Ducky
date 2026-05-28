@@ -6,6 +6,7 @@
     <NoWarn>NU1701</NoWarn>
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>Ducky</AssemblyName>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
   
   <PropertyGroup>
